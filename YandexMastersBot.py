@@ -41,7 +41,7 @@ def set_timetable(update, context):
         update.message.reply_text('Отказано в доступе')
     # ===================Log================================================================
     if update.message.from_user.id == 988566680 or update.message.from_user.id == 641113946:
-        with open('info/history.txt', 'w', encoding='UTF-8') as history:
+        with open('info/history.txt', 'a', encoding='UTF-8') as history:
             history.write(f"{update.message.from_user.first_name} изменил расписание.")
         history.close()
 
