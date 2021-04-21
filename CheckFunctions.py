@@ -10,7 +10,7 @@ def check_join(id):
 def check_teacher(id):
     with open('info/teachers.txt', 'r') as file:
         teachers = file.readlines()
-    if id in [x.split()[1].rstrip('\n') for x in teachers]:
+    if id in [x.split()[-1].rstrip('\n') for x in teachers]:
         return True
     else:
         return False
