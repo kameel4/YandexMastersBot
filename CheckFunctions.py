@@ -1,7 +1,7 @@
 def check_join(id):
     with open('info/joined.txt', 'r') as joined:
         data = joined.readlines()
-    if id not in [x.rstrip('\n') for x in data]:
+    if str(id) not in [x.rstrip('\n') for x in data]:
         joined.close()
         with open('info/joined.txt', 'a') as joined:
             joined.write(str(id) + '\n')
