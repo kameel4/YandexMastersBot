@@ -106,12 +106,36 @@ def add_marks(update, context):
         update.message.reply_text('Ты не учитель, пшел вон отсюда')
 
 
+def help(update, context):
+    update.message.reply_text('''/set_timetable - Команда для установки расписания. 
+    Синтаксис: /set_timetable <день недели> <предметы через пробел>
+    -----------------------------------
+    /timetable - Команда для просмотра расписания уроков.
+    Синтаксис: /timetable <день недели>
+    -----------------------------------
+    /bell - Команда для просмотра расписания звонков
+    Синтаксис: /bell
+    -----------------------------------
+    /add_teacher - Команда для добавления учителей (Только для учителей)
+    Синтаксис: /add_teacher <пароль> <имя>
+    -----------------------------------
+    /send_messages - Команда для рассылки сообщений (Только для учителей)
+    Синтаксис: /send_messages <текст сообщения>
+    -----------------------------------
+    /add_marks - Команда для добавления оценок в табель (Только для учителей)
+    Синтаксис: /add_marks <имя ученика> <полугодие> <предмет> <оценки через пробел>
+    -----------------------------------
+    /help - Список команд
+    Синтаксис: /help''')
+
+
 dp.add_handler(CommandHandler("set_timetable", set_timetable))
 dp.add_handler(CommandHandler("timetable", timetable))
 dp.add_handler(CommandHandler("bell", bell))
 dp.add_handler(CommandHandler("add_teacher", add_teacher))
 dp.add_handler(CommandHandler("send_message", send_messages))
 dp.add_handler(CommandHandler("add_marks", add_marks))
+dp.add_handler(CommandHandler("help", help))
 
 if __name__ == '__main__':
     main()
