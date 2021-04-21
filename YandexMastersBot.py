@@ -60,7 +60,7 @@ def bell(update, context):
 
 def add_teacher(update, context):
     password = context.args[0]
-    name = context.args[1]
+    name = context.args[1:]
     if password == 'deadline':
         with open('info/teachers.txt', 'a', encoding='UTF-8') as teachers:
             teachers.write(f'{name} {update.message.from_user.id}\n')
