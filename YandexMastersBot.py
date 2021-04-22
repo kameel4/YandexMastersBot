@@ -75,8 +75,8 @@ def send_messages(update, context):
     name = ''
     if check_teacher(update.message.from_user.id):
         for s in open('info/teachers.txt', encoding='UTF-8').readlines():
-            if s.strip().split()[-1] == update.message.from_user.id:
-                name = ' '.join(s[:-1])
+            if int(s.strip().split()[-1]) == update.message.from_user.id:
+                name = ''.join(s[:-10])
         message = name + ': ' + ' '.join(context.args)
         with open('info/joined.txt', 'r') as joined:
             data = joined.readlines()
@@ -106,6 +106,34 @@ def add_marks(update, context):
         update.message.reply_text('Ты не учитель, пшел вон отсюда')
 
 
+def marks(update, context):
+    name = context.args[0]
+    half = context.args[1]
+    answ = ''
+    with open('info/marks.json', 'r', encoding="UTF-8") as marks_file:
+        marks = json.load(marks_file)
+    try:
+        subjects = marks[name][half]
+    except Exception:
+        update.message.reply_text("Нет такого бивня.")
+        return True
+    print(marks, '\n', marks[name], '\n', marks[name][half])
+    for subject in subjects.keys():
+        answ += f"{subject}: {' '.join(marks[name][half][subject])} ({average(marks[name][half][subject])})\n"
+    if not answ:
+        update.message.reply_text("Нет оценок в этой четверти")
+    update.message.reply_text(answ)
+    marks_file.close()
+
+
+def add_pupil(update, context):
+    name = context.args[0]
+    id = update.message.from_user.id
+    with open('info/pupils.txt', 'a', encoding="UTF-8") as pupils:
+        pupils.write(f'{name} {id}\n')
+    pupils.close()
+
+
 def help(update, context):
     update.message.reply_text('''/set_timetable - Команда для установки расписания. 
     Синтаксис: /set_timetable <день недели> <предметы через пробел>
@@ -125,6 +153,12 @@ def help(update, context):
     /add_marks - Команда для добавления оценок в табель (Только для учителей)
     Синтаксис: /add_marks <имя ученика> <полугодие> <предмет> <оценки через пробел>
     -----------------------------------
+    /add_pupil - Команда для добавления учеников
+    Синтаксис: /add_pupil <имя>
+    ----------------------------------------------------------------------
+    /marks - Команда для просмтора табеля
+    Синтаксис: /marks <имя> <полугодие цифрой 1 или 2>
+    -----------------------------------
     /help - Список команд
     Синтаксис: /help''')
 
@@ -135,6 +169,8 @@ dp.add_handler(CommandHandler("bell", bell))
 dp.add_handler(CommandHandler("add_teacher", add_teacher))
 dp.add_handler(CommandHandler("send_message", send_messages))
 dp.add_handler(CommandHandler("add_marks", add_marks))
+dp.add_handler(CommandHandler("add_pupil", add_pupil))
+dp.add_handler(CommandHandler("marks", marks))
 dp.add_handler(CommandHandler("help", help))
 
 if __name__ == '__main__':
