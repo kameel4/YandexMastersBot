@@ -107,23 +107,31 @@ def add_marks(update, context):
 
 
 def marks(update, context):
-    name = context.args[0]
+    access = []
+    entered_name = context.args[0]
     half = context.args[1]
     answ = ''
     with open('info/marks.json', 'r', encoding="UTF-8") as marks_file:
         marks = json.load(marks_file)
-    try:
-        subjects = marks[name][half]
-    except Exception:
-        update.message.reply_text("Нет такого бивня.")
-        return True
-    print(marks, '\n', marks[name], '\n', marks[name][half])
-    for subject in subjects.keys():
-        answ += f"{subject}: {' '.join(marks[name][half][subject])} ({average(marks[name][half][subject])})\n"
-    if not answ:
-        update.message.reply_text("Нет оценок в этой четверти")
-    update.message.reply_text(answ)
-    marks_file.close()
+    for teacher in open("info/teachers.txt", "r", encoding="UTF-8").readlines():
+        access.append(int(teacher.strip().split()[-1]))
+    for pupil in open("info/pupils.txt", "r", encoding="UTF-8").readlines():
+        if entered_name == ' '.join(pupil.strip().split()[:-1]):
+            access.append(int(pupil.strip().split()[-1]))
+    if update.message.from_user.id in access:
+        try:
+            subjects = marks[entered_name][half]
+        except Exception:
+            update.message.reply_text("Нет такого бивня.")
+            return True
+        for subject in subjects.keys():
+            answ += f"{subject}: {' '.join(marks[entered_name][half][subject])} ({average(marks[entered_name][half][subject])})\n"
+        if not answ:
+            update.message.reply_text("Нет оценок в этой четверти")
+        update.message.reply_text(answ)
+    else:
+        update.message.reply_text("Отказано в доступе.")
+        marks_file.close()
 
 
 def add_pupil(update, context):
