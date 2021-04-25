@@ -1,0 +1,31 @@
+body {margin: 0;padding: 0;font-family: sans-serif;
+	background-image: url(2.jpg.jpg);
+}
+#mm{
+	text-align: center;
+	font-size:40px;
+	color:#FF5E32;
+	margin-top:15px;
+	font-family:SEGOE PRINT;
+}
+#gl{
+	font-size:15px;
+	color:green;
+	float: right;
+	position: absolute;
+	bottom: 25px;
+	right: 0;
+	left: 0;
+	text-align: left;
+	border: 2px solid #ffff00;
+	margin-right:1290px;
+	background-color:gold;
+}
+#tx{
+	text-align: center;
+	font-size:30px;
+	color:#009991;
+	font-weight:700;
+	font-family:SEGOE PRINT;
+	text-decoration: none;
+}
