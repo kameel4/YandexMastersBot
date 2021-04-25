@@ -127,10 +127,12 @@ def second_response(update, context):
         data = json.load(pupils)
         dont_send = open("info/doNotSend.txt", "r", encoding="UTF-8").readlines()
         print(dont_send)
+        print(group)
         for i in data["groups"][group]:
-            if (str(id) + '\n') not in dont_send:
-                print(str(id) + '\n')
+            if (str(i) + '\n') not in dont_send:
+                print(str(i) + '\n')
                 bot.send_message(text=message, chat_id=i)
+                print("отправлено")
         pupils.close()
     return ConversationHandler.END
 
@@ -316,6 +318,7 @@ quit_handler = ConversationHandler(
 
     fallbacks=[CommandHandler('stop', stop)]
 )
+dp.add_handler(conv_handler)
 dp.add_handler(quit_handler)
 dp.add_handler(CommandHandler("set_timetable", set_timetable))
 dp.add_handler(CommandHandler("timetable", timetable))
@@ -328,7 +331,6 @@ dp.add_handler(CommandHandler("sait", sait))
 dp.add_handler(CommandHandler("mute", mute))
 dp.add_handler(CommandHandler("add_group", add_group))
 dp.add_handler(CommandHandler("quit", quit))
-dp.add_handler(conv_handler)
 dp.add_handler(text_handler)
 
 if __name__ == '__main__':
