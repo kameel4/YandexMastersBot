@@ -3,15 +3,38 @@ from telegram import *
 import json
 from datetime import datetime as dt
 from CheckFunctions import *
+import flask
 
 updater = Updater('1676363369:AAHYqAQ2MxbytBdBPJkvtAxx1FwqBSzoXKw', use_context=True)
 bot = Bot(token="1676363369:AAHYqAQ2MxbytBdBPJkvtAxx1FwqBSzoXKw")
 dp = updater.dispatcher
+group = None
+
+
+# app = flask.Flask(__name__)
 
 
 def main():
+    # app.run(host="127.0.0.1", port=8080)
     updater.start_polling()
     updater.idle()
+
+
+def check_codes(update, context):
+    try:
+        word = update.message.text.lower()
+        with open("info/pupils.json", 'r', encoding="UTF-8") as pupils:
+            dct = json.load(pupils)
+        if update.message.from_user.id not in dct["groups"][dct["code_words"][word]]:
+            dct["groups"][dct["code_words"][word]].append(update.message.from_user.id)
+        pupils.close()
+        with open("info/pupils.json", 'w', encoding="UTF-8") as pupils:
+            json.dump(dct, pupils, ensure_ascii=False)
+        pupils.close()
+        update.message.reply_text(
+            f'Ученик с ником{update.message.from_user.first_name} добавлен в группу {dct["groups"][dct["code_words"]]}')
+    except Exception:
+        return None
 
 
 def set_timetable(update, context):
@@ -21,6 +44,7 @@ def set_timetable(update, context):
             day = context.args[0]
         timetable = context.args[1:]
         data['week'][day] = timetable
+        # Что если timetable - это какая-то чушь?
         file.close()
         with open('info/timetable.json', 'w', encoding='UTF-8') as file:
             json.dump(data, file, ensure_ascii=False)
@@ -29,10 +53,9 @@ def set_timetable(update, context):
     else:
         update.message.reply_text('Отказано в доступе')
     # ===================Log================================================================
-    if update.message.from_user.id == 988566680 or update.message.from_user.id == 641113946:
-        with open('info/history.txt', 'a', encoding='UTF-8') as history:
-            history.write(f"{update.message.from_user.first_name} изменил расписание.")
-        history.close()
+    with open('info/log.txt', 'a', encoding='UTF-8') as history:
+        history.write(f"{update.message.from_user.first_name} изменил расписание.")
+    history.close()
     check_join(update.message.from_user.id)
 
 
@@ -62,7 +85,7 @@ def bell(update, context):
 def add_teacher(update, context):
     password = context.args[0]
     name = " ".join(context.args[1:])
-    if password == 'deadline':
+    if hash(password) == 1422319535244306737:
         with open('info/teachers.txt', 'a', encoding='UTF-8') as teachers:
             teachers.write(f'{name} {update.message.from_user.id}\n')
         update.message.reply_text(f'Учитель {name} добавлен.')
@@ -72,18 +95,45 @@ def add_teacher(update, context):
 
 
 def send_messages(update, context):
+    with open("info/pupils.json", 'r', encoding="UTF-8") as pupils:
+        dct = json.load(pupils)
+    pupils.close()
+    reply_keyboard = [dct["groups"].keys()]
+    markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+    update.message.reply_text(
+        'Участникам какой группы вы хотите отправить сообщение?',
+        reply_markup=markup
+    )
+    return 1
+
+
+def first_response(update, context):
+    global group
+    group = update.message.text
+    update.message.reply_text("Отлично. Какое сообщение вы хотите отправить?")
+    return 2
+
+
+def second_response(update, context):
+    global group
+    msg = update.message.text
     name = ''
-    if check_teacher(update.message.from_user.id):
-        for s in open('info/teachers.txt', encoding='UTF-8').readlines():
-            if int(s.strip().split()[-1]) == update.message.from_user.id:
-                name = ''.join(s[:-10])
-        message = name + ': ' + ' '.join(context.args)
-        with open('info/joined.txt', 'r') as joined:
-            data = joined.readlines()
-            for i in data:
+    for s in open('info/teachers.txt', encoding='UTF-8').readlines():
+        if int(s.strip().split()[-1]) == update.message.from_user.id:
+            name = ''.join(s[:-10])
+    message = name + ': ' + msg
+    with open('info/pupils.json', 'r', encoding="UTF-8") as pupils:
+        data = json.load(pupils)
+        dont_send = open("info/doNotSend.txt", "r", encoding="UTF-8").readlines()
+        for i in data["groups"][group]:
+            if (str(id) + '\n') not in dont_send:
                 bot.send_message(text=message, chat_id=i)
-    else:
-        update.message.reply_text('Ты не учитель, пшел вон отсюда')
+    pupils.close()
+    return ConversationHandler.END
+
+
+def stop(update, context):
+    return ConversationHandler.END
 
 
 def add_marks(update, context):
@@ -103,7 +153,7 @@ def add_marks(update, context):
         marks[pupil_name][half][subject] += list_of_marks
         json.dump(marks, open('info/marks.json', 'w', encoding='UTF-8'), ensure_ascii=False)
     else:
-        update.message.reply_text('Ты не учитель, пшел вон отсюда')
+        update.message.reply_text('Функция предназначена только для учителей.')
 
 
 def marks(update, context):
@@ -122,7 +172,7 @@ def marks(update, context):
         try:
             subjects = marks[entered_name][half]
         except Exception:
-            update.message.reply_text("Нет такого бивня.")
+            update.message.reply_text("Нет такого ученика.")
             return True
         for subject in subjects.keys():
             answ += f"{subject}: {' '.join(marks[entered_name][half][subject])} ({average(marks[entered_name][half][subject])})\n"
@@ -134,12 +184,14 @@ def marks(update, context):
         marks_file.close()
 
 
-def add_pupil(update, context):
-    name = context.args[0]
-    id = update.message.from_user.id
-    with open('info/pupils.txt', 'a', encoding="UTF-8") as pupils:
-        pupils.write(f'{name} {id}\n')
-    pupils.close()
+def doNotSend(update, context):
+    with open("info/doNotSend.txt", "a", encoding="UTF-8") as file:
+        file.write(str(update.message.from_user.id) + '\n')
+    file.close()
+
+
+def sait(update, context):
+    update.message.reply_text("http://127.0.0.1:8080/")
 
 
 def help(update, context):
@@ -171,15 +223,31 @@ def help(update, context):
     Синтаксис: /help''')
 
 
+text_handler = MessageHandler(Filters.text, check_codes)
+conv_handler = ConversationHandler(
+    entry_points=[CommandHandler('send_message', send_messages)],
+
+    states={
+        1: [MessageHandler(Filters.text, first_response)],
+        2: [MessageHandler(Filters.text, second_response)]
+    },
+
+    fallbacks=[CommandHandler('stop', stop)]
+)
+dp.add_handler(conv_handler)
+dp.add_handler(text_handler)
 dp.add_handler(CommandHandler("set_timetable", set_timetable))
 dp.add_handler(CommandHandler("timetable", timetable))
 dp.add_handler(CommandHandler("bell", bell))
 dp.add_handler(CommandHandler("add_teacher", add_teacher))
-dp.add_handler(CommandHandler("send_message", send_messages))
 dp.add_handler(CommandHandler("add_marks", add_marks))
-dp.add_handler(CommandHandler("add_pupil", add_pupil))
 dp.add_handler(CommandHandler("marks", marks))
 dp.add_handler(CommandHandler("help", help))
+dp.add_handler(CommandHandler("sait", sait))
 
 if __name__ == '__main__':
     main()
+
+# для каждого пользователя добавляется понятие "добавиться в группу"
+# можно удалиться из группы
+# можно посмтотерть в какой группе ты состоишь
