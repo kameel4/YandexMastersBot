@@ -128,7 +128,7 @@ def second_response(update, context):
         for i in data["groups"][group]:
             if (str(id) + '\n') not in dont_send:
                 bot.send_message(text=message, chat_id=i)
-    pupils.close()
+        pupils.close()
     return ConversationHandler.END
 
 
@@ -191,7 +191,7 @@ def doNotSend(update, context):
 
 
 def sait(update, context):
-    update.message.reply_text("http://127.0.0.1:8080/")
+    update.message.reply_text("https://yandex-master-sait.herokuapp.com/")
 
 
 def help(update, context):
