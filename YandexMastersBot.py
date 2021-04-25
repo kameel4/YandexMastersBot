@@ -28,11 +28,11 @@ def check_codes(update, context):
         if update.message.from_user.id not in dct["groups"][dct["code_words"][word]]:
             dct["groups"][dct["code_words"][word]].append(update.message.from_user.id)
         pupils.close()
+        update.message.reply_text(
+            f'Ученик с ником{update.message.from_user.first_name} добавлен в группу {dct["groups"][dct["code_words"]]}')
         with open("info/pupils.json", 'w', encoding="UTF-8") as pupils:
             json.dump(dct, pupils, ensure_ascii=False)
         pupils.close()
-        update.message.reply_text(
-            f'Ученик с ником{update.message.from_user.first_name} добавлен в группу {dct["groups"][dct["code_words"]]}')
     except Exception:
         return None
 
@@ -118,6 +118,7 @@ def second_response(update, context):
     global group
     msg = update.message.text
     name = ''
+    id = update.message.from_user.id
     for s in open('info/teachers.txt', encoding='UTF-8').readlines():
         if int(s.strip().split()[-1]) == update.message.from_user.id:
             name = ''.join(s[:-10])
@@ -125,8 +126,10 @@ def second_response(update, context):
     with open('info/pupils.json', 'r', encoding="UTF-8") as pupils:
         data = json.load(pupils)
         dont_send = open("info/doNotSend.txt", "r", encoding="UTF-8").readlines()
+        print(dont_send)
         for i in data["groups"][group]:
             if (str(id) + '\n') not in dont_send:
+                print(str(id) + '\n')
                 bot.send_message(text=message, chat_id=i)
         pupils.close()
     return ConversationHandler.END
@@ -184,14 +187,72 @@ def marks(update, context):
         marks_file.close()
 
 
-def doNotSend(update, context):
+def mute(update, context):
+    print("записан")
     with open("info/doNotSend.txt", "a", encoding="UTF-8") as file:
         file.write(str(update.message.from_user.id) + '\n')
+        print("записан")
     file.close()
 
 
+def add_group(update, context):
+    if check_teacher(update.message.from_user.id):
+        group_name = ' '.join(context.args[:-1])
+        code = context.args[-1]
+        with open("info/pupils.json", "r", encoding="UTF-8") as pupils:
+            dct = json.load(pupils)
+        if group_name not in dct["groups"]:
+            dct["groups"][group_name] = []
+            dct["code_words"][code] = group_name
+            update.message.reply_text("Группа добавлена.")
+        else:
+            update.message.reply_text("Такая группа уже есть.")
+        pupils.close()
+        with open("info/pupils.json", "w", encoding="UTF-8") as pupils:
+            json.dump(dct, pupils, ensure_ascii=False)
+        pupils.close()
+
+
 def sait(update, context):
-    update.message.reply_text("https://yandex-master-sait.herokuapp.com/")
+    update.message.reply_text("https://yandex-master-final.herokuapp.com/")
+
+
+def quit(update, context):
+    inAny = False
+    with open("info/pupils.json", "r", encoding='UTF-8') as f:
+        dct = json.load(f)
+    f.close()
+    for i in dct["groups"].keys():
+        if update.message.from_user.id in dct["groups"][i]:
+            inAny = True
+    if inAny:
+        reply_keyboard = []
+        for group in dct["groups"].keys():
+            if update.message.from_user.id in dct["groups"][group]:
+                reply_keyboard.append([group])
+        markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+        update.message.reply_text("Из какой группы вы хотите выйти?",
+                                  reply_markup=markup)
+    print("Дощел до quit ретурна")
+    return 1
+
+
+def strange(update, context):
+    group = update.message.text
+    with open("info/pupils.json", "r", encoding='UTF-8') as f:
+        dct = json.load(f)
+    f.close()
+    if group not in dct["groups"].keys():
+        update.message.reply_text("Группа не найдена.")
+        return ConversationHandler.END
+    if update.message.from_user.id in dct["groups"][group]:
+        del dct["groups"][group][dct["groups"][group].index(update.message.from_user.id)]
+        update.message.reply_text("Ученик удален.")
+        with open("info/pupils.json", "w", encoding='UTF-8') as f:
+            json.dump(dct, f, ensure_ascii=False)
+    else:
+        update.message.reply_text("Ученика нет в группе.")
+    return ConversationHandler.END
 
 
 def help(update, context):
@@ -208,7 +269,7 @@ def help(update, context):
     Синтаксис: /add_teacher <пароль> <имя>
     -----------------------------------
     /send_messages - Команда для рассылки сообщений (Только для учителей)
-    Синтаксис: /send_messages <текст сообщения>
+    Синтаксис: /send_messages
     -----------------------------------
     /add_marks - Команда для добавления оценок в табель (Только для учителей)
     Синтаксис: /add_marks <имя ученика> <полугодие> <предмет> <оценки через пробел>
@@ -218,6 +279,18 @@ def help(update, context):
     ----------------------------------------------------------------------
     /marks - Команда для просмтора табеля
     Синтаксис: /marks <имя> <полугодие цифрой 1 или 2>
+    -----------------------------------
+    /dont_send - Команда для отписки от рассылки
+    Синтаксис: /send_messages
+    -----------------------------------
+    /sait - Сайт проекта
+    Синтаксис: /sait
+    -----------------------------------
+    /add_group - Команда, добавляющая группу (Только для учителей)
+    Синтаксис: /add_group <имя группы> <кодовое слово для добавления>
+    -----------------------------------
+    /quit - Покинуть группу
+    Синтаксис: /quit <имя группы>
     -----------------------------------
     /help - Список команд
     Синтаксис: /help''')
@@ -234,8 +307,16 @@ conv_handler = ConversationHandler(
 
     fallbacks=[CommandHandler('stop', stop)]
 )
-dp.add_handler(conv_handler)
-dp.add_handler(text_handler)
+quit_handler = ConversationHandler(
+    entry_points=[CommandHandler('quit', quit)],
+
+    states={
+        1: [MessageHandler(Filters.text, strange)]
+    },
+
+    fallbacks=[CommandHandler('stop', stop)]
+)
+dp.add_handler(quit_handler)
 dp.add_handler(CommandHandler("set_timetable", set_timetable))
 dp.add_handler(CommandHandler("timetable", timetable))
 dp.add_handler(CommandHandler("bell", bell))
@@ -244,6 +325,11 @@ dp.add_handler(CommandHandler("add_marks", add_marks))
 dp.add_handler(CommandHandler("marks", marks))
 dp.add_handler(CommandHandler("help", help))
 dp.add_handler(CommandHandler("sait", sait))
+dp.add_handler(CommandHandler("mute", mute))
+dp.add_handler(CommandHandler("add_group", add_group))
+dp.add_handler(CommandHandler("quit", quit))
+dp.add_handler(conv_handler)
+dp.add_handler(text_handler)
 
 if __name__ == '__main__':
     main()
