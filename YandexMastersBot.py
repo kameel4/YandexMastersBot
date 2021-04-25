@@ -191,7 +191,7 @@ def doNotSend(update, context):
 
 
 def sait(update, context):
-    update.message.reply_text("https://yandex-master-sait.herokuapp.com/")
+    update.message.reply_text("https://yandex-master-final.herokuapp.com/")
 
 
 def help(update, context):
